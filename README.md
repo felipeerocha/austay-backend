@@ -51,8 +51,8 @@ Este guia irá te ajudar a configurar o ambiente de desenvolvimento do zero.
 
 1.  **Clone o Repositório**
     ```bash
-    git clone <URL_DO_REPOSITORIO>
-    cd austay_api
+    git clone https://github.com/felipeerocha/austay-backend.git
+    cd austay-backend
     ```
 
 2.  **Crie e Ative o Ambiente Virtual (`venv`)**
