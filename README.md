@@ -38,7 +38,7 @@ O projeto é organizado para separar as responsabilidades, facilitando a manuten
 
 ## 🚀 Como Configurar e Rodar o Projeto
 
-Este guia irá te ajudar a configurar o ambiente de desenvolvimento do zero.
+Configurar o ambiente de desenvolvimento do zero.
 
 ### Pré-requisitos
 * **Python 3.9 ou superior**
