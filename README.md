@@ -33,9 +33,7 @@ O projeto é organizado para separar as responsabilidades, facilitando a manuten
 │   └── versions/
 │   └── env.py
 │   └── script.py.mako
-├── .gitignore            # Especifica os arquivos a serem ignorados pelo Git.
 ├── alembic.ini           # Configuração do Alembic para migrações.
-└── README.md             # Este arquivo.
 ```
 
 ## 🚀 Como Configurar e Rodar o Projeto
