@@ -23,9 +23,12 @@ O projeto é organizado para separar as responsabilidades, facilitando a manuten
 │   │   ├── token.py
 │   │   ├── tutor.py
 │   │   └── user.py
+│   └── templates/        # Módulos de templates de corpo de e-mail's.
+│       └── password_reset.html
 │   └── utils/            # Módulos utilitários (segurança, dependências, etc.).
 │       └── dependencies.py
 │       └── security.py
+│       └── email_sender.py
 │   ├── config.py
 │   ├── database.py
 │   └── main.py           # Ponto de entrada da aplicação FastAPI.
