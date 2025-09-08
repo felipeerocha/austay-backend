@@ -1,5 +1,3 @@
-# app/config.py
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -15,6 +13,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     DATABASE_URL: str
+    EMAIL_HOST: str
+    EMAIL_PORT: int
+    EMAIL_USER: str
+    EMAIL_PASS: str
 
 # Cria uma instância única das configurações para ser usada em toda a aplicação
 settings = Settings()
