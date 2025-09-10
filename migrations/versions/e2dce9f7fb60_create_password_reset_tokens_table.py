@@ -22,7 +22,7 @@ def upgrade() -> None:
     """Upgrade schema."""
     op.create_table(
         'password_reset_tokens',
-        sa.Column('id', sa.Integer, primary_key=True),
+        sa.Column('id', sa.sa.UUID, primary_key=True),
         sa.Column('user_id', sa.UUID, nullable=False),
         sa.Column('token', sa.String(length=10), nullable=False),
         sa.Column('created_at', sa.DateTime, server_default=sa.func.now(), nullable=False),

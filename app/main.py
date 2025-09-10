@@ -11,7 +11,7 @@ from app.models.user import User
 from app.models.tutor import Tutor
 from app.models.pet import Pet
 
-# Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Austay API",

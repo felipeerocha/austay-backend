@@ -20,40 +20,37 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Upgrade schema."""
-    op.add_column("pets", sa.Column("nome", sa.String(), nullable=False))
-    op.add_column("pets", sa.Column("especie", sa.String(), nullable=False))
-    op.add_column("pets", sa.Column("raca", sa.String(), nullable=False))
-    op.add_column("pets", sa.Column("nascimento", sa.String(), nullable=True))
-    op.add_column("pets", sa.Column("sexo", sa.String(), nullable=False))
-    op.add_column("pets", sa.Column("vermifugado", sa.Boolean(), nullable=True))
-    op.add_column("pets", sa.Column("vacinado", sa.Boolean(), nullable=True))
-    op.add_column("pets", sa.Column("tutor_id", sa.UUID(), nullable=False))
+    """Upgrade schema: cria a tabela pets completa."""
+    op.create_table(
+        "pets",
+        sa.Column("id", sa.UUID(), primary_key=True, nullable=False),
+        sa.Column("nome", sa.String(), nullable=False),
+        sa.Column("especie", sa.String(), nullable=False),
+        sa.Column("raca", sa.String(), nullable=False),
+        sa.Column("nascimento", sa.String(), nullable=True),
+        sa.Column("sexo", sa.String(), nullable=False),
+        sa.Column("vermifugado", sa.Boolean(), nullable=True),
+        sa.Column("vacinado", sa.Boolean(), nullable=True),
+        sa.Column("tutor_id", sa.UUID(), nullable=False),
+        sa.ForeignKeyConstraint(["tutor_id"], ["tutors.id"], ondelete="CASCADE"),
+    )
 
+    # Índices
     op.create_index(op.f("ix_pets_nome"), "pets", ["nome"])
     op.create_index(op.f("ix_pets_especie"), "pets", ["especie"])
     op.create_index(op.f("ix_pets_raca"), "pets", ["raca"])
     op.create_index(op.f("ix_pets_sexo"), "pets", ["sexo"])
     op.create_index(op.f("ix_pets_tutor_id"), "pets", ["tutor_id"])
 
-    op.create_foreign_key("fk_pet_tutor", "pets", "tutors", ["tutor_id"], ["id"])
+
+
 
 
 def downgrade() -> None:
-    """Downgrade schema."""
-    op.drop_constraint("fk_pet_tutor", "pets", type_="foreignkey")
-
+    """Downgrade schema: remove a tabela pets."""
     op.drop_index(op.f("ix_pets_tutor_id"), table_name="pets")
     op.drop_index(op.f("ix_pets_sexo"), table_name="pets")
     op.drop_index(op.f("ix_pets_raca"), table_name="pets")
     op.drop_index(op.f("ix_pets_especie"), table_name="pets")
     op.drop_index(op.f("ix_pets_nome"), table_name="pets")
-
-    op.drop_column("pets", "tutor_id")
-    op.drop_column("pets", "vacinado")
-    op.drop_column("pets", "vermifugado")
-    op.drop_column("pets", "sexo")
-    op.drop_column("pets", "nascimento")
-    op.drop_column("pets", "raca")
-    op.drop_column("pets", "especie")
-    op.drop_column("pets", "nome")
+    op.drop_table("pets")
