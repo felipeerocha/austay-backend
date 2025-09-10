@@ -63,7 +63,7 @@ Configurar o ambiente de desenvolvimento do zero.
     python3 -m venv venv
 
     # Ativa o ambiente (Mac/Linux)
-    source v-e-n-v/bin/activate  
+    source venv/bin/activate  
 
     # Ativa o ambiente (Windows)
     .\venv\Scripts\Activate.ps1
