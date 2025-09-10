@@ -31,3 +31,24 @@ def create_pet(
     db.commit()
     db.refresh(db_pet)
     return db_pet
+
+@router.get("/", response_model=List[PetOut])
+def list_pets(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    pets = db.query(Pet).offset(skip).limit(limit).all()
+    return pets
+
+@router.get("/{pet_id}", response_model=PetOut)
+def get_pet(
+    pet_id: UUID, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    db_pet = db.get(Pet, pet_id)
+    if not db_pet:
+        raise HTTPException(status_code=404, detail="Pet não encontrado.")
+    return db_pet
