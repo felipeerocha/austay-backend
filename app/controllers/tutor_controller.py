@@ -8,6 +8,8 @@ from app.models.tutor import Tutor
 from app.schemas.tutor import TutorCreate, TutorUpdate, TutorOut
 from app.utils.dependencies import get_current_user
 from app.models.user import User
+from app.schemas.pet import PetOut
+
 
 router = APIRouter(prefix="/tutors", tags=["Tutores"])
 
@@ -17,7 +19,6 @@ def create_tutor(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
-    # Verifica se o CPF já existe
     db_tutor_cpf = db.query(Tutor).filter(Tutor.cpf == tutor.cpf).first()
     if db_tutor_cpf:
         raise HTTPException(status_code=400, detail="CPF já cadastrado.")
@@ -48,6 +49,19 @@ def get_tutor(
     if not db_tutor:
         raise HTTPException(status_code=404, detail="Tutor não encontrado.")
     return db_tutor
+
+@router.get("/{tutor_id}/pets", response_model=List[PetOut])
+def get_tutor_pets(
+    tutor_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    db_tutor = db.get(Tutor, tutor_id)
+    if not db_tutor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tutor não encontrado."
+        )
+    return db_tutor.pets
 
 @router.put("/{tutor_id}", response_model=TutorOut)
 def update_tutor(

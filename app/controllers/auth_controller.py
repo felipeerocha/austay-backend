@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models import user as models
 from app.models.user import User
 from app.models.password_reset import PasswordResetToken
+from app.schemas.password_reset import PasswordResetVerify, PasswordResetConfirm
 from app.schemas.token import LoginRequest, Token
 from app.schemas import password_reset as schemas
 from app.utils.security import (
@@ -63,16 +64,15 @@ def forgot_password(request: schemas.PasswordResetRequest, db: Session = Depends
     
     send_email(to_email=user.email, subject=email_subject, body=email_body)
     
-    return {"msg": "Código de verificação enviado para o e-mail"}
+    return {
+    "msg": "Código de verificação enviado para o e-mail",
+    "user_id": str(user.id)
+}
 
 @router.post("/verify-token")
-def verify_token(request: schemas.PasswordResetVerify, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == request.email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-
+def verify_token(request: PasswordResetVerify, db: Session = Depends(get_db)):
     token_db = db.query(PasswordResetToken).filter(
-        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.user_id == request.user_id,
         PasswordResetToken.token == request.token,
         PasswordResetToken.expires_at > datetime.utcnow()
     ).first()
@@ -82,14 +82,11 @@ def verify_token(request: schemas.PasswordResetVerify, db: Session = Depends(get
 
     return {"msg": "Token válido"}
 
-@router.post("/reset-password")
-def reset_password(request: schemas.PasswordResetConfirm, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == request.email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
+@router.post("/reset-password")
+def reset_password(request: PasswordResetConfirm, db: Session = Depends(get_db)):
     token_db = db.query(PasswordResetToken).filter(
-        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.user_id == request.user_id,
         PasswordResetToken.token == request.token,
         PasswordResetToken.expires_at > datetime.utcnow()
     ).first()
@@ -97,11 +94,12 @@ def reset_password(request: schemas.PasswordResetConfirm, db: Session = Depends(
     if not token_db:
         raise HTTPException(status_code=400, detail="Token inválido ou expirado. Tente novamente.")
 
+    user = db.query(User).filter(User.id == request.user_id).first()
     user.password = hash_password(request.new_password)
-    
-    db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user.id).delete()
-    
-    db.commit()
 
+    db.query(PasswordResetToken).filter(PasswordResetToken.user_id == request.user_id).delete()
+
+    db.commit()
     return {"msg": "Senha alterada com sucesso"}
+
 

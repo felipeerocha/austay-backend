@@ -1,9 +1,9 @@
-# app/models/pet.py
 import uuid
-from sqlalchemy import Boolean, Column, ForeignKey, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, String
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID 
 from app.database import Base
-
+from app.models import pet_tutor_association
 
 class Pet(Base):
     __tablename__ = "pets"
@@ -15,6 +15,9 @@ class Pet(Base):
     sexo = Column(String, nullable=False, index=True)
     vermifugado = Column(Boolean, nullable=True)
     vacinado = Column(Boolean, nullable=True)
-    tutor_id = Column(
-        UUID(as_uuid=True), ForeignKey("tutors.id"), nullable=False, index=True
-    )  # Relacionamento com Tutor
+    
+    tutors = relationship(
+        "Tutor",
+        secondary=pet_tutor_association,
+        back_populates="pets"
+    )

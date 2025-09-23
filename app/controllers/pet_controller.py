@@ -19,14 +19,19 @@ def create_pet(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Verifica se o tutor existe
-    db_tutor = db.get(Tutor, pet.tutor_id)
-    if not db_tutor:
+    tutors_db = db.query(Tutor).filter(Tutor.id.in_(pet.tutor_ids)).all()
+
+    if len(tutors_db) != len(pet.tutor_ids):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Tutor não encontrado."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Um ou mais tutores não foram encontrados.",
         )
 
-    db_pet = Pet(**pet.model_dump())
+    pet_data = pet.model_dump(exclude={"tutor_ids"})
+    db_pet = Pet(**pet_data)
+
+    db_pet.tutors.extend(tutors_db)
+
     db.add(db_pet)
     db.commit()
     db.refresh(db_pet)

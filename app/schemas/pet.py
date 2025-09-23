@@ -1,7 +1,12 @@
 from pydantic import BaseModel, constr
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 
+class TutorPetOut(BaseModel):
+    id: UUID
+    name: str
+    class Config:
+        from_attributes = True
 
 class PetBase(BaseModel):
     nome: str
@@ -11,12 +16,9 @@ class PetBase(BaseModel):
     sexo: str
     vermifugado: Optional[bool] = None
     vacinado: Optional[bool] = None
-    tutor_id: UUID
-
 
 class PetCreate(PetBase):
-    pass
-
+    tutor_ids: List[UUID]
 
 class PetUpdate(BaseModel):
     nome: Optional[str] = None
@@ -26,11 +28,11 @@ class PetUpdate(BaseModel):
     sexo: Optional[str] = None
     vermifugado: Optional[bool] = None
     vacinado: Optional[bool] = None
-    tutor_id: Optional[UUID] = None
-
+    tutor_ids: Optional[List[UUID]] = None
 
 class PetOut(PetBase):
     id: UUID
+    tutors: List[TutorPetOut] = []
 
     class Config:
         from_attributes = True
