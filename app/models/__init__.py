@@ -13,3 +13,5 @@ from .user import User
 from .pet import Pet
 from .tutor import Tutor
 from .password_reset import PasswordResetToken
+from .estadia import Estadia
+from .pagamento import Pagamento
