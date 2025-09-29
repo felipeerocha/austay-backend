@@ -21,3 +21,5 @@ class Pet(Base):
         secondary=pet_tutor_association,
         back_populates="pets"
     )
+    
+    estadias = relationship("Estadia", back_populates="pet")
