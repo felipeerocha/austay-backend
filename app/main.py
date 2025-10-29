@@ -6,6 +6,7 @@ from app.controllers import (
     pet_controller,
     pagamento_controller,
     estadia_controller,
+    dashboard_controller,
 )
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,3 +37,4 @@ app.include_router(tutor_controller.router)
 app.include_router(pet_controller.router)
 app.include_router(estadia_controller.router)
 app.include_router(pagamento_controller.router)
+app.include_router(dashboard_controller.router)
