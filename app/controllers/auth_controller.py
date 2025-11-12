@@ -7,9 +7,8 @@ from app.database import get_db
 from app.models import user as models
 from app.models.user import User
 from app.models.password_reset import PasswordResetToken
-from app.schemas.password_reset import PasswordResetVerify, PasswordResetConfirm
+from app.schemas.password_reset import PasswordResetRequest, PasswordResetVerify, PasswordResetConfirm
 from app.schemas.token import LoginRequest, Token
-from app.schemas import password_reset as schemas
 from app.utils.security import (
     verify_password,
     create_access_token,
@@ -25,21 +24,33 @@ def login_for_access_token(
     login_data: LoginRequest,
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.email == login_data.email).first()
-    if not user or not verify_password(login_data.password, user.password):
+    user = db.query(models.User).filter(models.User.email == login_data.email).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="E-mail não localizado em nossa base de dados, procure o administrador."
+        )
+
+    if not verify_password(login_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou senha incorretos",
+            detail="Senha incorreta."
         )
+
     access_token_data = {"sub": user.email}
     access_token = create_access_token(data=access_token_data)
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/forgot-password")
-def forgot_password(request: schemas.PasswordResetRequest, db: Session = Depends(get_db)):
+def forgot_password(request: PasswordResetRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == request.email).first()
     if not user:
-        return {"msg": "Se um usuário com este e-mail existir, um código de verificação foi enviado."}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="E-mail não localizado em nossa base de dados, procure o administrador."
+        )
 
     token = generate_reset_token()
     reset = PasswordResetToken(user_id=user.id, token=token)
@@ -101,5 +112,4 @@ def reset_password(request: PasswordResetConfirm, db: Session = Depends(get_db))
 
     db.commit()
     return {"msg": "Senha alterada com sucesso"}
-
 
