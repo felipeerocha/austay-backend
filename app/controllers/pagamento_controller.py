@@ -2,55 +2,52 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
-from datetime import datetime
 
 from app.database import get_db
 from app.models.pagamento import Pagamento
 from app.models.estadia import Estadia
+# Schema PagamentoCreate agora só tem meio_pagamento e data_pagamento
 from app.schemas.pagamento import PagamentoCreate, PagamentoUpdate, PagamentoOut
 from app.utils.dependencies import get_current_user
 from app.models.user import User
 
 router = APIRouter(prefix="/pagamentos", tags=["Pagamentos"])
 
-
-@router.post("/", response_model=PagamentoOut, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=PagamentoOut, status_code=status.HTTP_200_OK)
 def create_pagamento(
+    
     pagamento: PagamentoCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    estadia = db.get(Estadia, pagamento.estadia_id)
-    if not estadia:
-        raise HTTPException(status_code=404, detail="Estadia não encontrada.")
-
-    existing_pagamento = (
-        db.query(Pagamento).filter(Pagamento.estadia_id == pagamento.estadia_id).first()
+    # 1. Encontrar o pagamento (que já existe)
+    db_pagamento = (
+        db.query(Pagamento)
+        .filter(Pagamento.estadia_id == pagamento.estadia_id)
+        .first()
     )
-    if existing_pagamento:
+    
+    if not db_pagamento:
+        raise HTTPException(status_code=404, detail="Registro de pagamento não encontrado.")
+
+    if db_pagamento.status:
+        raise HTTPException(status_code=400, detail="Pagamento já foi realizado.")
+
+    # 2. Verificar se o valor a ser pago já foi calculado
+    if db_pagamento.valor is None:
         raise HTTPException(
-            status_code=400, detail="Já existe um pagamento para esta estadia."
+            status_code=400, 
+            detail="Não é possível pagar. A estadia ainda não foi finalizada (sem data de saída)."
         )
 
-    if estadia.pago:
-        raise HTTPException(status_code=400, detail="Estadia já foi paga.")
+    # 3. Efetuar o pagamento
+    db_pagamento.status = True
+    db_pagamento.meio_pagamento = pagamento.meio_pagamento
+    db_pagamento.data_pagamento = pagamento.data_pagamento
 
-    entrada = datetime.strptime(estadia.data_entrada, "%d/%m/%Y")
-    saida = datetime.strptime(estadia.data_saida, "%d/%m/%Y")
-    dias = (saida - entrada).days
-    valor_total = dias * estadia.valor_diaria
+    # 4. Sincronizar estadia
+    db_pagamento.estadia.pago = True # Acessa via relationship
 
-    db_pagamento = Pagamento(
-        estadia_id=pagamento.estadia_id,
-        valor=valor_total,
-        status="pago",
-        meio_pagamento=pagamento.meio_pagamento,
-        data_pagamento=pagamento.data_pagamento,
-    )
-
-    estadia.pago = True
-
-    db.add(db_pagamento)
     db.commit()
     db.refresh(db_pagamento)
     return db_pagamento
@@ -58,9 +55,7 @@ def create_pagamento(
 
 @router.get("/", response_model=List[PagamentoOut])
 def list_pagamentos(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db),
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     pagamentos = db.query(Pagamento).offset(skip).limit(limit).all()
@@ -69,8 +64,7 @@ def list_pagamentos(
 
 @router.get("/{pagamento_id}", response_model=PagamentoOut)
 def get_pagamento(
-    pagamento_id: UUID,
-    db: Session = Depends(get_db),
+    pagamento_id: UUID, db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     db_pagamento = db.get(Pagamento, pagamento_id)
@@ -91,6 +85,24 @@ def update_pagamento(
         raise HTTPException(status_code=404, detail="Pagamento não encontrado.")
 
     update_data = pagamento.model_dump(exclude_unset=True)
+    
+    # *** LÓGICA DE SINCRONIZAÇÃO ***
+    if "status" in update_data:
+        novo_status = update_data["status"]
+        
+        # Carregar a estadia associada
+        estadia = db_pagamento.estadia # Usando o relationship
+        if estadia:
+            estadia.pago = novo_status
+            
+        # Se estiver "despagando" (False), limpar os dados do pagamento
+        if novo_status == False:
+            db_pagamento.valor = None
+            db_pagamento.valor_total = None
+            db_pagamento.meio_pagamento = None
+            db_pagamento.data_pagamento = None
+
+    # Aplicar as atualizações no pagamento
     for key, value in update_data.items():
         setattr(db_pagamento, key, value)
 
@@ -99,7 +111,8 @@ def update_pagamento(
     return db_pagamento
 
 
-@router.delete("/{pagamento_id}", status_code=status.HTTP_204_NO_CONTENT)
+# Este endpoint agora "RESETA" o pagamento, em vez de deletar
+@router.delete("/{pagamento_id}", response_model=PagamentoOut)
 def delete_pagamento(
     pagamento_id: UUID,
     db: Session = Depends(get_db),
@@ -109,10 +122,20 @@ def delete_pagamento(
     if not db_pagamento:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado.")
 
-    estadia = db.get(Estadia, db_pagamento.estadia_id)
+    # Sincronizar estadia
+    estadia = db_pagamento.estadia
     if estadia:
         estadia.pago = False
 
-    db.delete(db_pagamento)
+    # Resetar o pagamento
+    db_pagamento.status = False
+    db_pagamento.valor = None
+    db_pagamento.valor_total = None
+    db_pagamento.meio_pagamento = None
+    db_pagamento.data_pagamento = None
+
     db.commit()
-    return None
+    db.refresh(db_pagamento)
+    
+    # Retorna o pagamento resetado (em vez de 204 No Content)
+    return db_pagamento

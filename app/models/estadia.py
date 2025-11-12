@@ -3,8 +3,7 @@ from sqlalchemy import Column, ForeignKey, String, Float, Boolean, Date, Time
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
-from app.models.pet import Pet
-from app.models.tutor import Tutor
+
 
 class Estadia(Base):
     __tablename__ = "estadia"
@@ -18,9 +17,14 @@ class Estadia(Base):
     hora_final = Column(Time, nullable=True)
     
     valor_diaria = Column(Float, nullable=False)
+    valor_total = Column(Float, nullable=True) # Valor total pode ser nulo inicialmente
     observacoes = Column(String, nullable=True)
-    pago = Column(Boolean, default=False)
+    
+    # O default=False garante que sempre seja falso na criação
+    pago = Column(Boolean, default=False, nullable=False) 
 
-    pet = relationship("Pet")
-    tutor = relationship("Tutor")
-    pet = relationship("Pet", back_populates="estadias") 
+    pet = relationship("Pet", back_populates="estadias")
+    tutor = relationship("Tutor") # Assumindo que Tutor não tem back_populates="estadias"
+    
+    # Novo relacionamento um-para-um com Pagamento
+    pagamento = relationship("Pagamento", back_populates="estadia", uselist=False, cascade="all, delete-orphan")
